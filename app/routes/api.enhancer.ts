@@ -12,6 +12,7 @@ export async function action(args: ActionFunctionArgs) {
 
 async function enhancerAction({ context, request }: ActionFunctionArgs) {
   const { message } = await request.json<{ message: string }>();
+  const apiKeys = context.apiKeys || {};
 
   try {
     const result = await streamText(
@@ -19,17 +20,19 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
         {
           role: 'user',
           content: stripIndents`
-          I want you to improve the user prompt that is wrapped in \`<original_prompt>\` tags.
+          I want you to break down the concept provided in the \`<concept>\` tags visually and display it on a dashboard.
 
-          IMPORTANT: Only respond with the improved prompt and nothing else!
+          IMPORTANT: Only respond with the visual breakdown and nothing else!
 
-          <original_prompt>
+          <concept>
             ${message}
-          </original_prompt>
+          </concept>
         `,
         },
       ],
       context.cloudflare.env,
+      undefined,
+      apiKeys
     );
 
     const transformStream = new TransformStream({

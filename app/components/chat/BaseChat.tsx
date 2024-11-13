@@ -1,30 +1,16 @@
-// @ts-nocheck
-// Preventing TS checks with files presented in the video for a better presentation.
-import type { Message } from 'ai';
-import React, { type RefCallback, useEffect } from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
-import { Menu } from '~/components/sidebar/Menu.client';
-import { IconButton } from '~/components/ui/IconButton';
-import { Workbench } from '~/components/workbench/Workbench.client';
-import { classNames } from '~/utils/classNames';
-import { MODEL_LIST, DEFAULT_PROVIDER } from '~/utils/constants';
-import { Messages } from './Messages.client';
-import { SendButton } from './SendButton.client';
-import { useState } from 'react';
-import { APIKeyManager } from './APIKeyManager';
+import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
-
+import { IconButton } from '~/components/ui/IconButton';
+import { APIKeyManager } from './APIKeyManager';
 import styles from './BaseChat.module.scss';
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Build a todo app in React using Tailwind' },
-  { text: 'Build a simple blog using Astro' },
-  { text: 'Create a cookie consent form using Material UI' },
-  { text: 'Make a space invaders game' },
-  { text: 'How do I center a div?' },
+  { text: 'Explain the concept of recursion' },
+  { text: 'What is a closure in JavaScript?' },
+  { text: 'How does the virtual DOM work in React?' },
+  { text: 'What is the difference between var, let, and const in JavaScript?' },
+  { text: 'Explain the concept of promises in JavaScript' },
 ];
-
-const providerList = [...new Set(MODEL_LIST.map((model) => model.provider))]
 
 const ModelSelector = ({ model, setModel, provider, setProvider, modelList, providerList }) => {
   return (
@@ -43,15 +29,6 @@ const ModelSelector = ({ model, setModel, provider, setProvider, modelList, prov
             {provider}
           </option>
         ))}
-        <option key="Ollama" value="Ollama">
-          Ollama
-        </option>
-        <option key="OpenAILike" value="OpenAILike">
-          OpenAILike
-        </option>
-        <option key="LMStudio" value="LMStudio">
-          LMStudio
-        </option>
       </select>
       <select
         value={model}
@@ -72,12 +49,12 @@ const TEXTAREA_MIN_HEIGHT = 76;
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
-  messageRef?: RefCallback<HTMLDivElement> | undefined;
-  scrollRef?: RefCallback<HTMLDivElement> | undefined;
+  messageRef?: React.RefCallback<HTMLDivElement> | undefined;
+  scrollRef?: React.RefCallback<HTMLDivElement> | undefined;
   showChat?: boolean;
   chatStarted?: boolean;
   isStreaming?: boolean;
-  messages?: Message[];
+  messages?: any[];
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;
@@ -151,6 +128,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
+    const generateVisualBreakdown = (concept: string) => {
+      // Placeholder function to generate visual breakdown from concept
+      return `<div>Visual breakdown of: ${concept}</div>`;
+    };
+
     return (
       <div
         ref={ref}
@@ -160,7 +142,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         )}
         data-chat-visible={showChat}
       >
-        <ClientOnly>{() => <Menu />}</ClientOnly>
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
@@ -178,18 +159,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 'h-full flex flex-col': chatStarted,
               })}
             >
-              <ClientOnly>
-                {() => {
-                  return chatStarted ? (
-                    <Messages
-                      ref={messageRef}
-                      className="flex flex-col w-full flex-1 max-w-chat px-4 pb-6 mx-auto z-1"
-                      messages={messages}
-                      isStreaming={isStreaming}
-                    />
-                  ) : null;
-                }}
-              </ClientOnly>
               <div
                 className={classNames('relative w-full max-w-chat mx-auto z-prompt', {
                   'sticky bottom-0': chatStarted,
@@ -235,25 +204,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       minHeight: TEXTAREA_MIN_HEIGHT,
                       maxHeight: TEXTAREA_MAX_HEIGHT,
                     }}
-                    placeholder="How can Bolt help you today?"
+                    placeholder="Ask me anything about programming concepts..."
                     translate="no"
                   />
-                  <ClientOnly>
-                    {() => (
-                      <SendButton
-                        show={input.length > 0 || isStreaming}
-                        isStreaming={isStreaming}
-                        onClick={(event) => {
-                          if (isStreaming) {
-                            handleStop?.();
-                            return;
-                          }
-
-                          sendMessage?.(event);
-                        }}
-                      />
-                    )}
-                  </ClientOnly>
                   <div className="flex justify-between items-center text-sm p-4 pt-2">
                     <div className="flex gap-1 items-center">
                       <IconButton
@@ -310,7 +263,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             )}
           </div>
-          <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>
         </div>
       </div>
     );
