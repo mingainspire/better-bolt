@@ -51,7 +51,16 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
 
     const transformedStream = result.toAIStream().pipeThrough(transformStream);
 
-    return new StreamingTextResponse(transformedStream);
+    // Save the visual breakdown to the dashboard
+    const visualBreakdown = await new Response(transformedStream).text();
+    saveToDashboard(visualBreakdown);
+
+    return new Response(visualBreakdown, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
+    });
   } catch (error) {
     console.log(error);
 
@@ -60,4 +69,9 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
       statusText: 'Internal Server Error',
     });
   }
+}
+
+function saveToDashboard(breakdown: string) {
+  // Logic to save the visual breakdown to the dashboard
+  console.log('Saving to dashboard:', breakdown);
 }

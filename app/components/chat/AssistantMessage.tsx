@@ -8,10 +8,10 @@ interface AssistantMessageProps {
 export const AssistantMessage = memo(({ content }: AssistantMessageProps) => {
   const [visualBreakdown, setVisualBreakdown] = useState<string | null>(null);
 
-  const handleVisualBreakdown = () => {
-    // Logic to generate visual breakdown from content
-    const breakdown = generateVisualBreakdown(content);
+  const handleVisualBreakdown = async () => {
+    const breakdown = await generateVisualBreakdown(content);
     setVisualBreakdown(breakdown);
+    saveToDashboard(breakdown);
   };
 
   return (
@@ -27,7 +27,24 @@ export const AssistantMessage = memo(({ content }: AssistantMessageProps) => {
   );
 });
 
-function generateVisualBreakdown(content: string): string {
-  // Placeholder function to generate visual breakdown from content
-  return `<div>Visual breakdown of: ${content}</div>`;
+async function generateVisualBreakdown(content: string): Promise<string> {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message: content }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to generate visual breakdown');
+  }
+
+  const breakdown = await response.text();
+  return breakdown;
+}
+
+function saveToDashboard(breakdown: string) {
+  // Logic to save the visual breakdown to the dashboard
+  console.log('Saving to dashboard:', breakdown);
 }
