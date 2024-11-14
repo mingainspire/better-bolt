@@ -1,267 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import Cookies from 'js-cookie';
-import { IconButton } from '~/components/ui/IconButton';
-import { APIKeyManager } from './APIKeyManager';
-import styles from './BaseChat.module.scss';
-
-const EXAMPLE_PROMPTS = [
-  { text: 'Explain the concept of recursion' },
-  { text: 'What is a closure in JavaScript?' },
-  { text: 'How does the virtual DOM work in React?' },
-  { text: 'What is the difference between var, let, and const in JavaScript?' },
-  { text: 'Explain the concept of promises in JavaScript' },
-];
-
-const ModelSelector = ({ model, setModel, provider, setProvider, modelList, providerList }) => {
-  return (
-    <div className="mb-2 flex gap-2">
-      <select 
-        value={provider}
-        onChange={(e) => {
-          setProvider(e.target.value);
-          const firstModel = [...modelList].find(m => m.provider == e.target.value);
-          setModel(firstModel ? firstModel.name : '');
-        }}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
-      >
-        {providerList.map((provider) => (
-          <option key={provider} value={provider}>
-            {provider}
-          </option>
-        ))}
-      </select>
-      <select
-        value={model}
-        onChange={(e) => setModel(e.target.value)}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
-      >
-        {[...modelList].filter(e => e.provider == provider && e.name).map((modelOption) => (
-          <option key={modelOption.name} value={modelOption.name}>
-            {modelOption.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
-
-const TEXTAREA_MIN_HEIGHT = 76;
+import React, { useState } from 'react';
+import { classNames } from '~/utils/classNames';
 
 interface BaseChatProps {
-  textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
-  messageRef?: React.RefCallback<HTMLDivElement> | undefined;
-  scrollRef?: React.RefCallback<HTMLDivElement> | undefined;
-  showChat?: boolean;
-  chatStarted?: boolean;
-  isStreaming?: boolean;
-  messages?: any[];
-  enhancingPrompt?: boolean;
-  promptEnhanced?: boolean;
+  textareaRef?: React.RefObject<HTMLTextAreaElement>;
   input?: string;
-  model: string;
-  setModel: (model: string) => void;
-  provider: string;
-  setProvider: (provider: string) => void;
-  handleStop?: () => void;
-  sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
+  isStreaming?: boolean;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  enhancePrompt?: () => void;
+  sendMessage?: (event: React.UIEvent) => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   (
     {
       textareaRef,
-      messageRef,
-      scrollRef,
-      showChat = true,
-      chatStarted = false,
-      isStreaming = false,
-      enhancingPrompt = false,
-      promptEnhanced = false,
-      messages,
       input = '',
-      model,
-      setModel,
-      provider,
-      setProvider,
-      sendMessage,
+      isStreaming = false,
       handleInputChange,
-      enhancePrompt,
-      handleStop,
+      sendMessage,
     },
     ref,
   ) => {
-    const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
-    const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+    const TEXTAREA_MIN_HEIGHT = 76;
+    const TEXTAREA_MAX_HEIGHT = 200;
 
-    useEffect(() => {
-      // Load API keys from cookies on component mount
-      try {
-        const storedApiKeys = Cookies.get('apiKeys');
-        if (storedApiKeys) {
-          const parsedKeys = JSON.parse(storedApiKeys);
-          if (typeof parsedKeys === 'object' && parsedKeys !== null) {
-            setApiKeys(parsedKeys);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading API keys from cookies:', error);
-        // Clear invalid cookie data
-        Cookies.remove('apiKeys');
-      }
-    }, []);
-
-    const updateApiKey = (provider: string, key: string) => {
-      try {
-        const updatedApiKeys = { ...apiKeys, [provider]: key };
-        setApiKeys(updatedApiKeys);
-        // Save updated API keys to cookies with 30 day expiry and secure settings
-        Cookies.set('apiKeys', JSON.stringify(updatedApiKeys), {
-          expires: 30, // 30 days
-          secure: true, // Only send over HTTPS
-          sameSite: 'strict', // Protect against CSRF
-          path: '/' // Accessible across the site
-        });
-      } catch (error) {
-        console.error('Error saving API keys to cookies:', error);
-      }
-    };
-
-    const generateVisualBreakdown = (concept: string) => {
-      // Placeholder function to generate visual breakdown from concept
-      return `<div>Visual breakdown of: ${concept}</div>`;
-    };
+    const EXAMPLE_PROMPTS = [
+      { text: 'Visualize how magnetic interference affects sound waves' },
+      { text: 'Create a visual representation of photosynthesis' },
+      { text: 'Show me how a black hole warps spacetime' },
+      { text: 'Visualize the relationship between music harmony and mathematics' },
+      { text: 'Create a visual breakdown of how memory formation works in the brain' },
+    ];
 
     return (
       <div
         ref={ref}
-        className={classNames(
-          styles.BaseChat,
-          'relative flex h-full w-full overflow-hidden bg-bolt-elements-background-depth-1',
-        )}
-        data-chat-visible={showChat}
+        className="relative flex h-full w-full overflow-hidden"
       >
-        <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
-            {!chatStarted && (
-              <div id="intro" className="mt-[26vh] max-w-chat mx-auto text-center">
-                <h1 className="text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
-                </h1>
-                <p className="text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Bring ideas to life in seconds or get help on existing projects.
-                </p>
-              </div>
-            )}
-            <div
-              className={classNames('pt-6 px-6', {
-                'h-full flex flex-col': chatStarted,
-              })}
-            >
-              <div
-                className={classNames('relative w-full max-w-chat mx-auto z-prompt', {
-                  'sticky bottom-0': chatStarted,
-                })}
-              >
-                <ModelSelector
-                  model={model}
-                  setModel={setModel}
-                  modelList={MODEL_LIST}
-                  provider={provider}
-                  setProvider={setProvider}
-                  providerList={providerList}
-                />
-                <APIKeyManager
-                  provider={provider}
-                  apiKey={apiKeys[provider] || ''}
-                  setApiKey={(key) => updateApiKey(provider, key)}
-                />
-                <div
-                  className={classNames(
-                    'shadow-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden transition-all',
-                  )}
-                >
+        <div className="flex overflow-y-auto w-full h-full">
+          <div className="flex flex-col flex-grow min-w-[375px] h-full">
+            <div id="intro" className="mt-[26vh] max-w-[768px] mx-auto text-center">
+              <h1 className="text-6xl font-bold mb-4 animate-fade-in">
+                Visual Concept Breakdown
+              </h1>
+              <p className="text-xl mb-8 text-gray-600 animate-fade-in animation-delay-200">
+                Transform any concept into clear visual representations
+              </p>
+            </div>
+            <div className="pt-6 px-6">
+              <div className="relative w-full max-w-[768px] mx-auto">
+                <div className="shadow-lg border border-gray-200 rounded-lg overflow-hidden">
                   <textarea
                     ref={textareaRef}
-                    className={`w-full pl-4 pt-4 pr-16 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus resize-none text-md text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent transition-all`}
+                    className="w-full pl-4 pt-4 pr-16 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        if (event.shiftKey) {
-                          return;
-                        }
-
+                      if (event.key === 'Enter' && event.ctrlKey) {
                         event.preventDefault();
-
                         sendMessage?.(event);
                       }
                     }}
                     value={input}
-                    onChange={(event) => {
-                      handleInputChange?.(event);
-                    }}
+                    onChange={handleInputChange}
                     style={{
                       minHeight: TEXTAREA_MIN_HEIGHT,
                       maxHeight: TEXTAREA_MAX_HEIGHT,
                     }}
-                    placeholder="Ask me anything about programming concepts..."
+                    placeholder="Describe any concept you'd like to visualize..."
                     translate="no"
                   />
                   <div className="flex justify-between items-center text-sm p-4 pt-2">
-                    <div className="flex gap-1 items-center">
-                      <IconButton
-                        title="Enhance prompt"
-                        disabled={input.length === 0 || enhancingPrompt}
-                        className={classNames('transition-all', {
-                          'opacity-100!': enhancingPrompt,
-                          'text-bolt-elements-item-contentAccent! pr-1.5 enabled:hover:bg-bolt-elements-item-backgroundAccent!':
-                            promptEnhanced,
-                        })}
-                        onClick={() => enhancePrompt?.()}
-                      >
-                        {enhancingPrompt ? (
-                          <>
-                            <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-                            <div className="ml-1.5">Enhancing prompt...</div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="i-bolt:stars text-xl"></div>
-                            {promptEnhanced && <div className="ml-1.5">Prompt enhanced</div>}
-                          </>
-                        )}
-                      </IconButton>
+                    <button
+                      disabled={input.length === 0 || isStreaming}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors ${
+                        input.length === 0 || isStreaming
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-blue-500 hover:bg-blue-600'
+                      }`}
+                      onClick={(event) => sendMessage?.(event)}
+                    >
+                      <span className="i-ph:paper-plane-right text-xl" />
+                      Visualize
+                    </button>
+                    <div className="text-xs text-gray-500">
+                      Press <kbd className="px-1.5 py-0.5 rounded bg-gray-100">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-gray-100">Enter</kbd> to send
                     </div>
-                    {input.length > 3 ? (
-                      <div className="text-xs text-bolt-elements-textTertiary">
-                        Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd> + <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd> for a new line
-                      </div>
-                    ) : null}
                   </div>
                 </div>
-                <div className="bg-bolt-elements-background-depth-1 pb-6">{/* Ghost Element */}</div>
               </div>
             </div>
-            {!chatStarted && (
-              <div id="examples" className="relative w-full max-w-xl mx-auto mt-8 flex justify-center">
-                <div className="flex flex-col space-y-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_180%)] hover:[mask-image:none]">
-                  {EXAMPLE_PROMPTS.map((examplePrompt, index) => {
-                    return (
-                      <button
-                        key={index}
-                        onClick={(event) => {
-                          sendMessage?.(event, examplePrompt.text);
-                        }}
-                        className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
-                      >
-                        {examplePrompt.text}
-                        <div className="i-ph:arrow-bend-down-left" />
-                      </button>
-                    );
-                  })}
-                </div>
+            <div id="examples" className="relative w-full max-w-xl mx-auto mt-8 flex justify-center">
+              <div className="flex flex-col space-y-2">
+                {EXAMPLE_PROMPTS.map((examplePrompt, index) => (
+                  <button
+                    key={index}
+                    onClick={(event) => sendMessage?.(event)}
+                    className="group flex items-center w-full gap-2 justify-center bg-transparent text-gray-500 hover:text-gray-900"
+                  >
+                    {examplePrompt.text}
+                    <div className="i-ph:arrow-bend-down-left" />
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

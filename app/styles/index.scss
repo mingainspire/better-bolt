@@ -1,14 +1,92 @@
 @import './variables.scss';
-@import './z-index.scss';
 @import './animations.scss';
-@import './components/terminal.scss';
-@import './components/resize-handle.scss';
 @import './components/code.scss';
 @import './components/editor.scss';
+@import './components/resize-handle.scss';
+@import './components/terminal.scss';
 @import './components/toast.scss';
 
 html,
 body {
-  height: 100%;
-  width: 100%;
+  padding: 0;
+  margin: 0;
+  background-color: var(--bolt-background);
+  color: var(--bolt-text-primary);
+  font-family: var(--bolt-font-family);
+}
+
+.max-w-chat {
+  max-width: var(--bolt-chat-max-width);
+}
+
+.min-w-chat {
+  min-width: var(--bolt-chat-min-width);
+}
+
+.min-w-terminal {
+  min-width: var(--bolt-terminal-min-width);
+}
+
+.max-w-terminal {
+  max-width: var(--bolt-terminal-max-width);
+}
+
+.kdb {
+  font-family: var(--bolt-monospace-font);
+}
+
+// Dark mode specific styles
+.bg-bolt-elements-background {
+  background-color: var(--bolt-background);
+}
+
+.bg-bolt-elements-background-depth-1 {
+  background-color: var(--bolt-background-depth-1);
+}
+
+.bg-bolt-elements-background-depth-2 {
+  background-color: var(--bolt-background-depth-2);
+}
+
+.text-bolt-elements-textPrimary {
+  color: var(--bolt-text-primary);
+}
+
+.text-bolt-elements-textSecondary {
+  color: var(--bolt-text-secondary);
+}
+
+.text-bolt-elements-textTertiary {
+  color: var(--bolt-text-tertiary);
+}
+
+.border-bolt-elements-borderColor {
+  border-color: var(--bolt-border-color);
+}
+
+.focus\:ring-bolt-elements-focus:focus {
+  --tw-ring-color: var(--bolt-focus-ring);
+}
+
+// Visualization card styles for dark mode
+.visualization {
+  background-color: var(--bolt-background-depth-1);
+  border: 1px solid var(--bolt-border-color);
+  
+  .prose {
+    color: var(--bolt-text-primary);
+    
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--bolt-text-primary);
+    }
+    
+    p, li {
+      color: var(--bolt-text-secondary);
+    }
+    
+    code {
+      background-color: var(--bolt-background-depth-2);
+      color: var(--bolt-text-primary);
+    }
+  }
 }

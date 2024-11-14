@@ -1,15 +1,32 @@
-import type { ModelInfo, OllamaApiResponse, OllamaModel } from './types';
+export interface ModelInfo {
+  name: string;
+  label: string;
+  provider: string;
+}
+
+export interface OllamaModel {
+  name: string;
+  details: {
+    parameter_size: string;
+  };
+}
+
+export interface OllamaApiResponse {
+  models: OllamaModel[];
+}
 
 export const WORK_DIR_NAME = 'project';
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
 export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
 export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 export const PROVIDER_REGEX = /\[Provider: (.*?)\]\n\n/;
-export const DEFAULT_MODEL = 'claude-3-5-sonnet-latest';
-export const DEFAULT_PROVIDER = 'Anthropic';
+export const DEFAULT_MODEL = 'qwen/qwen-2.5-32b';
+export const DEFAULT_PROVIDER = 'OpenRouter';
 
 const staticModels: ModelInfo[] = [
-  { name: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI' },
+  // Add Qwen 2.5 32b as the first option
+  { name: 'qwen/qwen-2.5-32b', label: 'Qwen 2.5 32B (OpenRouter)', provider: 'OpenRouter' },
+  { name: 'qwen/qwen-110b-chat', label: 'Qwen 110B Chat (OpenRouter)', provider: 'OpenRouter' },
   { name: 'anthropic/claude-3.5-sonnet', label: 'Anthropic: Claude 3.5 Sonnet (OpenRouter)', provider: 'OpenRouter' },
   { name: 'anthropic/claude-3-haiku', label: 'Anthropic: Claude 3 Haiku (OpenRouter)', provider: 'OpenRouter' },
   { name: 'deepseek/deepseek-coder', label: 'Deepseek-Coder V2 236B (OpenRouter)', provider: 'OpenRouter' },
@@ -17,7 +34,6 @@ const staticModels: ModelInfo[] = [
   { name: 'google/gemini-pro-1.5', label: 'Google Gemini Pro 1.5 (OpenRouter)', provider: 'OpenRouter' },
   { name: 'x-ai/grok-beta', label: "xAI Grok Beta (OpenRouter)", provider: 'OpenRouter' },
   { name: 'mistralai/mistral-nemo', label: 'OpenRouter Mistral Nemo (OpenRouter)', provider: 'OpenRouter' },
-  { name: 'qwen/qwen-110b-chat', label: 'OpenRouter Qwen 110b Chat (OpenRouter)', provider: 'OpenRouter' },
   { name: 'cohere/command', label: 'Cohere Command (OpenRouter)', provider: 'OpenRouter' },
   { name: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash', provider: 'Google' },
   { name: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro', provider: 'Google' },
@@ -32,6 +48,7 @@ const staticModels: ModelInfo[] = [
   { name: 'claude-3-opus-latest', label: 'Claude 3 Opus', provider: 'Anthropic' },
   { name: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet', provider: 'Anthropic' },
   { name: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku', provider: 'Anthropic' },
+  { name: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI' },
   { name: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'OpenAI' },
   { name: 'gpt-4-turbo', label: 'GPT-4 Turbo', provider: 'OpenAI' },
   { name: 'gpt-4', label: 'GPT-4', provider: 'OpenAI' },
@@ -54,13 +71,10 @@ export let MODEL_LIST: ModelInfo[] = [...staticModels];
 
 const getOllamaBaseUrl = () => {
   const defaultBaseUrl = import.meta.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
-  // Check if we're in the browser
   if (typeof window !== 'undefined') {
-    // Frontend always uses localhost
     return defaultBaseUrl;
   }
 
-  // Backend: Check if we're running in Docker
   const isDocker = process.env.RUNNING_IN_DOCKER === 'true';
 
   return isDocker
@@ -105,7 +119,6 @@ async function getOpenAILikeModels(): Promise<ModelInfo[]> {
   } catch (e) {
     return []
   }
-
 }
 
 async function getLMStudioModels(): Promise<ModelInfo[]> {
@@ -123,7 +136,6 @@ async function getLMStudioModels(): Promise<ModelInfo[]> {
   }
 }
 
-
 async function initializeModelList(): Promise<void> {
   const ollamaModels = await getOllamaModels();
   const openAiLikeModels = await getOpenAILikeModels();
@@ -131,4 +143,4 @@ async function initializeModelList(): Promise<void> {
   MODEL_LIST = [...ollamaModels,...openAiLikeModels, ...staticModels,...lmstudioModels,];
 }
 initializeModelList().then();
-export { getOllamaModels,getOpenAILikeModels,getLMStudioModels,initializeModelList };
+export { getOllamaModels, getOpenAILikeModels, getLMStudioModels, initializeModelList };
