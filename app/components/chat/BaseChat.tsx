@@ -3,26 +3,63 @@ import Cookies from 'js-cookie';
 import { IconButton } from '~/components/ui/IconButton';
 import { APIKeyManager } from './APIKeyManager';
 import styles from './BaseChat.module.scss';
+import { MODEL_LIST, type ModelInfo } from '~/utils/constants';
+
+// Utility function for combining class names
+const classNames = (...classes: (string | boolean | undefined | null | { [key: string]: boolean } | Record<string, boolean>)[]): string => {
+  return classes
+    .filter(Boolean)
+    .map((cls) => {
+      if (typeof cls === 'object' && cls !== null) {
+        return Object.entries(cls)
+          .filter(([_, value]) => value)
+          .map(([key]) => key)
+          .join(' ');
+      }
+      return cls;
+    })
+    .filter(Boolean)
+    .join(' ');
+};
+
+interface ModelSelectorProps {
+  model: string;
+  setModel: (model: string) => void;
+  provider: string;
+  setProvider: (provider: string) => void;
+  modelList: ModelInfo[];
+  providerList: string[];
+}
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Explain the concept of recursion' },
-  { text: 'What is a closure in JavaScript?' },
-  { text: 'How does the virtual DOM work in React?' },
-  { text: 'What is the difference between var, let, and const in JavaScript?' },
-  { text: 'Explain the concept of promises in JavaScript' },
+  { text: 'Explain how a CPU works' },
+  { text: 'Show me how garbage collection works in JavaScript' },
+  { text: 'Visualize the event loop in Node.js' },
+  { text: 'Create a diagram of React component lifecycle' },
+  { text: 'Explain Docker containerization' },
 ];
 
-const ModelSelector = ({ model, setModel, provider, setProvider, modelList, providerList }) => {
+// Get unique providers from MODEL_LIST
+const providerList = Array.from(new Set(MODEL_LIST.map(model => model.provider)));
+
+const ModelSelector: React.FC<ModelSelectorProps> = ({ 
+  model, 
+  setModel, 
+  provider, 
+  setProvider, 
+  modelList, 
+  providerList 
+}) => {
   return (
     <div className="mb-2 flex gap-2">
       <select 
         value={provider}
         onChange={(e) => {
           setProvider(e.target.value);
-          const firstModel = [...modelList].find(m => m.provider == e.target.value);
+          const firstModel = [...modelList].find(m => m.provider === e.target.value);
           setModel(firstModel ? firstModel.name : '');
         }}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+        className="flex-1 p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {providerList.map((provider) => (
           <option key={provider} value={provider}>
@@ -33,9 +70,9 @@ const ModelSelector = ({ model, setModel, provider, setProvider, modelList, prov
       <select
         value={model}
         onChange={(e) => setModel(e.target.value)}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+        className="flex-1 p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
-        {[...modelList].filter(e => e.provider == provider && e.name).map((modelOption) => (
+        {[...modelList].filter(e => e.provider === provider && e.name).map((modelOption) => (
           <option key={modelOption.name} value={modelOption.name}>
             {modelOption.label}
           </option>
@@ -47,14 +84,19 @@ const ModelSelector = ({ model, setModel, provider, setProvider, modelList, prov
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface BaseChatProps {
-  textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
-  messageRef?: React.RefCallback<HTMLDivElement> | undefined;
-  scrollRef?: React.RefCallback<HTMLDivElement> | undefined;
+  textareaRef?: React.RefObject<HTMLTextAreaElement>;
+  messageRef?: React.RefCallback<HTMLDivElement>;
+  scrollRef?: React.RefCallback<HTMLDivElement>;
   showChat?: boolean;
   chatStarted?: boolean;
   isStreaming?: boolean;
-  messages?: any[];
+  messages?: Message[];
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;
@@ -79,7 +121,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       isStreaming = false,
       enhancingPrompt = false,
       promptEnhanced = false,
-      messages,
+      messages = [],
       input = '',
       model,
       setModel,
@@ -96,7 +138,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
     useEffect(() => {
-      // Load API keys from cookies on component mount
       try {
         const storedApiKeys = Cookies.get('apiKeys');
         if (storedApiKeys) {
@@ -107,7 +148,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       } catch (error) {
         console.error('Error loading API keys from cookies:', error);
-        // Clear invalid cookie data
         Cookies.remove('apiKeys');
       }
     }, []);
@@ -116,21 +156,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       try {
         const updatedApiKeys = { ...apiKeys, [provider]: key };
         setApiKeys(updatedApiKeys);
-        // Save updated API keys to cookies with 30 day expiry and secure settings
         Cookies.set('apiKeys', JSON.stringify(updatedApiKeys), {
-          expires: 30, // 30 days
-          secure: true, // Only send over HTTPS
-          sameSite: 'strict', // Protect against CSRF
-          path: '/' // Accessible across the site
+          expires: 30,
+          secure: true,
+          sameSite: 'strict',
+          path: '/'
         });
       } catch (error) {
         console.error('Error saving API keys to cookies:', error);
       }
-    };
-
-    const generateVisualBreakdown = (concept: string) => {
-      // Placeholder function to generate visual breakdown from concept
-      return `<div>Visual breakdown of: ${concept}</div>`;
     };
 
     return (
@@ -138,7 +172,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ref={ref}
         className={classNames(
           styles.BaseChat,
-          'relative flex h-full w-full overflow-hidden bg-bolt-elements-background-depth-1',
+          'relative flex h-full w-full overflow-hidden',
         )}
         data-chat-visible={showChat}
       >
@@ -146,11 +180,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
               <div id="intro" className="mt-[26vh] max-w-chat mx-auto text-center">
-                <h1 className="text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
+                <h1 className="text-6xl font-bold mb-4 animate-fade-in">
+                  Bolt
                 </h1>
-                <p className="text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Bring ideas to life in seconds or get help on existing projects.
+                <p className="text-xl mb-8 text-gray-600 animate-fade-in animation-delay-200">
+                  Talk with Bolt, an AI assistant from StackBlitz
                 </p>
               </div>
             )}
@@ -177,22 +211,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   apiKey={apiKeys[provider] || ''}
                   setApiKey={(key) => updateApiKey(provider, key)}
                 />
-                <div
-                  className={classNames(
-                    'shadow-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden transition-all',
-                  )}
-                >
+                <div className="shadow-lg border border-gray-200 rounded-lg overflow-hidden">
                   <textarea
                     ref={textareaRef}
-                    className={`w-full pl-4 pt-4 pr-16 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus resize-none text-md text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent transition-all`}
+                    className="w-full pl-4 pt-4 pr-16 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        if (event.shiftKey) {
-                          return;
-                        }
-
+                      if (event.key === 'Enter' && event.ctrlKey) {
                         event.preventDefault();
-
                         sendMessage?.(event);
                       }
                     }}
@@ -204,24 +229,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       minHeight: TEXTAREA_MIN_HEIGHT,
                       maxHeight: TEXTAREA_MAX_HEIGHT,
                     }}
-                    placeholder="Ask me anything about programming concepts..."
+                    placeholder="Ask me anything..."
                     translate="no"
                   />
                   <div className="flex justify-between items-center text-sm p-4 pt-2">
-                    <div className="flex gap-1 items-center">
+                    <div className="flex gap-2 items-center">
                       <IconButton
                         title="Enhance prompt"
                         disabled={input.length === 0 || enhancingPrompt}
                         className={classNames('transition-all', {
                           'opacity-100!': enhancingPrompt,
-                          'text-bolt-elements-item-contentAccent! pr-1.5 enabled:hover:bg-bolt-elements-item-backgroundAccent!':
+                          'text-blue-500! pr-1.5 enabled:hover:bg-blue-50!':
                             promptEnhanced,
                         })}
                         onClick={() => enhancePrompt?.()}
                       >
                         {enhancingPrompt ? (
                           <>
-                            <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                            <div className="i-svg-spinners:90-ring-with-bg text-blue-500 text-xl animate-spin"></div>
                             <div className="ml-1.5">Enhancing prompt...</div>
                           </>
                         ) : (
@@ -232,14 +257,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         )}
                       </IconButton>
                     </div>
-                    {input.length > 3 ? (
-                      <div className="text-xs text-bolt-elements-textTertiary">
-                        Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd> + <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd> for a new line
-                      </div>
-                    ) : null}
+                    <div className="text-xs text-gray-500">
+                      Press <kbd className="px-1.5 py-0.5 rounded bg-gray-100">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-gray-100">Enter</kbd> to send
+                    </div>
                   </div>
                 </div>
-                <div className="bg-bolt-elements-background-depth-1 pb-6">{/* Ghost Element */}</div>
+                <div className="pb-6">{/* Ghost Element */}</div>
               </div>
             </div>
             {!chatStarted && (
@@ -252,7 +275,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         onClick={(event) => {
                           sendMessage?.(event, examplePrompt.text);
                         }}
-                        className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
+                        className="group flex items-center w-full gap-2 justify-center bg-transparent text-gray-500 hover:text-gray-900"
                       >
                         {examplePrompt.text}
                         <div className="i-ph:arrow-bend-down-left" />

@@ -6,9 +6,15 @@ export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
 
+interface ChatRequest {
+  message: string;
+  model: string;
+  provider: string;
+  apiKeys: Record<string, string>;
+}
+
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { message } = await request.json<{ message: string }>();
-  const apiKeys = context.apiKeys || {};
+  const { message, model, provider, apiKeys } = await request.json<ChatRequest>();
 
   try {
     const result = await streamText(
@@ -16,9 +22,37 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         {
           role: 'user',
           content: stripIndents`
-          I want you to break down the concept provided in the \`<concept>\` tags visually and display it on a dashboard.
+          [Model: ${model}]
+          [Provider: ${provider}]
 
-          IMPORTANT: Only respond with the visual breakdown and nothing else!
+          Create a comprehensive visual representation and explanation of the concept provided in the \`<concept>\` tags.
+
+          Please provide your response in this format:
+          
+          # [Concept Title]
+
+          ## Visual Representation
+          [Create a detailed visual representation using markdown. This can include:
+          - ASCII diagrams
+          - Flow charts
+          - Process diagrams
+          - Hierarchical structures
+          - Mathematical visualizations
+          - Any other visual format that best explains the concept
+          Be creative but ensure clarity and accuracy.]
+
+          ## Detailed Explanation
+          [Provide a clear, detailed explanation that complements the visual representation. Include:
+          - Key principles and components
+          - How different elements interact
+          - Real-world applications or examples
+          - Important relationships and patterns]
+
+          ## Related Concepts
+          [List and briefly explain related concepts that help provide broader context]
+
+          ## Notes
+          [Include any important considerations, limitations, or additional insights]
 
           <concept>
             ${message}
@@ -40,27 +74,30 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
     const transformedStream = result.toAIStream().pipeThrough(transformStream);
 
-    // Save the visual breakdown to the dashboard
-    const visualBreakdown = await new Response(transformedStream).text();
-    saveToDashboard(visualBreakdown);
+    // Get the complete response
+    const response = await new Response(transformedStream).text();
 
-    return new Response(visualBreakdown, {
+    // Return the formatted response
+    return new Response(response, {
       status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
       },
     });
   } catch (error) {
-    console.log(error);
+    console.error('Chat API Error:', error);
 
-    throw new Response(null, {
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to process request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }), 
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
-}
-
-function saveToDashboard(breakdown: string) {
-  // Logic to save the visual breakdown to the dashboard
-  console.log('Saving to dashboard:', breakdown);
 }
